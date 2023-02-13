@@ -29,15 +29,24 @@ def generate_file(module_name: str, output_dir: pathlib.Path, recipe: Dict[str, 
     #  file name and destination folder
     recipe["name"] = string.Template(recipe["name"]).safe_substitute(module_name=module_name)
     recipe["path"] = string.Template(recipe["path"]).safe_substitute(module_name=module_name)
-    
-    file_name: str = f"{recipe.get('name')}{recipe.get('ext')}"
+
+    file_ext: str = recipe.get('ext')
+    file_base_name: str = recipe.get('name')
+    file_name: str = f"{file_base_name}{file_ext}"
     file_path: pathlib.Path = output_dir / recipe.get("path")
+
+    file_variables: dict[str, str] = {
+        "module_name": module_name,
+        "file_name": file_name,
+        "ext": file_ext,
+        "base_name": file_base_name
+    }
 
     # file contents
     file_contents: List[str] = list()
     for section in recipe.get("body"):
         str: str = templates[section]["str"]
-        file_contents.append(string.Template(str).safe_substitute(file_name=file_name, module_name=module_name))
+        file_contents.append(string.Template(str).safe_substitute(**file_variables))
 
     file_contents: List[str] = "\n".join(file_contents)
     
