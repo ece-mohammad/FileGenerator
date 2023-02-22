@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "FileGenerator"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
     { name="Mohammad Mohsen", email="kuro.ece@gmail.com" },
 ]
@@ -24,7 +24,7 @@ classifiers = [
 
 [tool.poetry]
 name = "FileGenerator"
-version = "0.0.1"
+version = "0.0.2"
 description = "Generate files (text, C, C++, etc) with optional boilerplate, according to a template file"
 authors = ["Mohammad Mohsen <kuro.ece@gmail.com>"]
 readme = "README.md"

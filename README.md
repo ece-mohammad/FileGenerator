@@ -5,14 +5,13 @@ Generate files (text, C, C++, etc) with optional boilerplate, according to a tem
 
 ## Why?
 
-When starting a new project, I need to create multiple source and header files and add some comments. It gets a bit boring copying and pasting all the comments from one file to the others and it's easy to make some mistakes, so I decided to automate that. It's quite handy and saves time (like 5 minutes?) off each project. Something a little bit like [Jinja](https://jinja.palletsprojects.com/en/3.1.x/), but lighter and suitable for smaller files.
+When starting a new project, I need to create multiple source and header files and add some comments. It gets a bit boring copying and pasting all the comments from one file to the others, and it's easy to make some mistakes, so I decided to automate that. It's quite handy and saves time (like 5 minutes?) off each project. Something a little like [Jinja](https://jinja.palletsprojects.com/en/3.1.x/), but lighter and suitable for smaller files.
 
 
 ## Usage
 
 ```shell
-
-usage: generate_c_module.py [-h|--help] [-o|--output_dir OUTPUT_DIR] module_name template_file
+usage: GenerateFiles.py [-h] [-o OUTPUT_DIR] [-v] [--version] module_name template_file
 
 Generate files according to template file
 
@@ -24,7 +23,8 @@ options:
   -h, --help            show this help message and exit
   -o OUTPUT_DIR, --output_dir OUTPUT_DIR
                         output directory where generated files will be written, default is current directory
-
+  -v, --verbose         output debugging messages to console
+  --version             print current program's version
 ```
 
 Will generate module_name.h, module_name.c in the given output directories for source and header files. Specified source and header directories take precedence over output directory, when all 3 are specified. Specifying only one is the same as using `-d`. 
@@ -113,7 +113,7 @@ headers = [
 # -----------------------------------------------------------------------------
 test = [
     {id="unity",       ext=".c", name="${module_name}Test",       path="./Test",             body=["std_inc", "unity_inc"]},
-    {id="unityRunner", ext=".c", name="${module_name}TestRunner", path="./Test/TestRunners", body=["std_inc", "unity_inc", "unity_main"]},
+    {id="unityRunner", ext=".c", name="${module_name}TestRunner", path="./Test/TestRunners", body=["std_inc", "unity_inc"]},
 ]
 
 
@@ -211,14 +211,14 @@ str = "${file_footer}"
 # added to the start of all header files
 [templates.inc_header]
 str = """${file_header}
-#ifndef _${module_name}_H_
-#define _${module_name}_H_
+
+#ifndef _${base_name}_H_
+#define _${base_name}_H_
 
 #ifdef __cplusplus
 extern "C" 
 {
 #endif /* __cplusplus */
-
 
 """
 
@@ -229,7 +229,8 @@ str = """
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-#endif /* _${module_name}_H_ */
+
+#endif /* _${base_name}_H_ */
 ${file_footer}
 """
 
@@ -249,6 +250,7 @@ str = """
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 """
 
@@ -263,17 +265,8 @@ int main(void)
 [templates.unity_inc]
 str = """
 #include "unity.h"
+#include "unity_fixture.h"
 """
-
-[templates.unity_main]
-str = """
-int main(void)
-{
-    UNITY_BEGIN();
-    return UNITY_END();
-}
-"""
-
 
 ```
 
@@ -283,4 +276,4 @@ int main(void)
 Some features that are not implemented yet:
 - Inherit templates from other template files
 - Merge current template file with other template files
-- 
+- Formatting in templates

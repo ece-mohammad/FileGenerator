@@ -4,23 +4,30 @@
 
 import argparse
 import calendar
+import copy
 import datetime
-import json
 import logging as log
 import pathlib
 import re
 import string
 import sys
-from pprint import pprint as pp
 from typing import *
 
 import tomllib
+
+
+__VERSION__: Final[str] = "0.0.2"
+
+
+LOGGER: log.Logger = log.getLogger(__name__)
 
 
 def write_file(file_name: str, dst_dir: pathlib.Path, contents: str):
     dst_dir.mkdir(parents=True, exist_ok=True)
 
     dst_file: pathlib.Path = dst_dir / file_name
+
+    log.debug(f"Writing file: {file_name} to {dst_dir}")
     with open(dst_file, "w") as out_file:
         out_file.write(contents)
 
@@ -45,16 +52,10 @@ def generate_file(module_name: str, output_dir: pathlib.Path, recipe: Dict[str, 
     # file contents
     file_contents: List[str] = list()
     for section in recipe.get("body"):
-        str: str = templates[section]["str"]
-        file_contents.append(string.Template(str).safe_substitute(**file_variables))
+        section_string: str = templates[section]["str"]
+        file_contents.append(string.Template(section_string).safe_substitute(**file_variables))
 
     file_contents: List[str] = "\n".join(file_contents)
-    
-    # pp(file_name)
-    # pp(recipe)
-    # print(f"{file_contents=}")
-    # pp("")
-
     write_file(file_name, file_path, file_contents)
 
 
@@ -127,49 +128,79 @@ def expand_templates(templates: Dict[str, Dict[str, str]], **kwargs) -> Dict[str
 def main():
 
     arg_parser: argparse.ArgumentParser = argparse.ArgumentParser(
-        description="Generate files according to template file"
+        description="Generate files according to template file",
     )
 
     arg_parser.add_argument(
-        "module_name",
-        help="name of the module for which the files are generated"
+        "module_names",
+        help="list of module names for which the files are generated",
+        nargs="+"
     )
 
     arg_parser.add_argument(
-        "template_file",
-        help="path to template file"
+        "-t",
+        "--template_file",
+        help="path to template file",
+        type=pathlib.Path,
+        default=pathlib.Path("template.toml")
     )
 
     arg_parser.add_argument(
         "-o",
         "--output_dir",
         help="output directory where generated files will be written, default is current directory",
-        type=str,
-        default="./"
+        type=pathlib.Path,
+        default=pathlib.Path.cwd()
+    )
+
+    arg_parser.add_argument(
+        "-v",
+        "--verbose",
+        help="output debugging messages to console, disabled by default to outputs errors only",
+        action="count",
+        default=0
+    )
+
+    arg_parser.add_argument(
+        "--version",
+        help="print current program's version",
+        action="version",
+        version=f"%(prog)s version {__VERSION__}"
     )
 
     parsed_args: argparse.Namespace = arg_parser.parse_args()
-    template_file: pathlib.Path = pathlib.Path(parsed_args.template_file).absolute()
-    output_dir: pathlib.Path = pathlib.Path(parsed_args.output_dir).absolute()
-    module_name: str = parsed_args.module_name
+    template_file: pathlib.Path = parsed_args.template_file.absolute()
+    output_dir: pathlib.Path = parsed_args.output_dir.absolute()
+    module_names: List[str] = parsed_args.module_names
+    verbosity: int = parsed_args.verbose
 
+    # setup logging verbosity
+    if verbosity == 0:
+        log.basicConfig(level=log.CRITICAL)
+    elif verbosity == 1:
+        log.basicConfig(level=log.ERROR)
+    elif verbosity == 2:
+        log.basicConfig(level=log.WARNING)
+    elif verbosity == 3:
+        log.basicConfig(level=log.INFO)
+    else:
+        log.basicConfig(level=log.DEBUG)
+
+    # load templates from file
     if not template_file.is_file():
+        log.critical(f"Failed to open template file: {template_file!s}")
         sys.exit(-1)
 
-    #  load configuration file
+    log.info(f"Loading templates from: {template_file.name}")
+
     with open(template_file, "rb") as conf_file:
         config = tomllib.load(conf_file)
     
-    # with open("config.json", "w") as out_file:
-    #     out_file.write(json.dumps(config))
-    
-    config_name = config.get("name", None)
+    template_name = config.get("name", None)
     inherits_from = config.get("inherit", None)
     merge_with = config.get("merge", None)
     
-    general = config.get("general", None)
     special_variables = config.get("special_variables", None)
-    templates = config.get("templates", None)
 
     today = datetime.datetime.today()
     calendar.setfirstweekday(calendar.MONDAY)
@@ -182,28 +213,41 @@ def main():
     special_variables["year"]       = today.year
     special_variables["date"]       = today.strftime("%Y/%m/%d")
 
-    special_variables["module_name"] = module_name
-    
-    # expand templates
-    templates: Dict[str, Any] = expand_templates(templates, **special_variables)
+    # generate files for each module, using extracted templates
+    for module_name in module_names:
 
-    # with open("templates.json", "w") as out_file:
-    #     out_file.write(json.dumps(templates))
-    
-    # source files
-    source_files: List[Dict[str, str]] = general.get("sources", None)
-    if source_files is not None:
-        generate_sources(module_name, output_dir, source_files, templates)
+        module_config: Dict[Any, Any] = copy.deepcopy(config)
+        general: Dict[Any, Any] = module_config.get("general", None)
+        templates: Dict[Any, Any] = module_config.get("templates", None)
+        special_variables["module_name"] = module_name
 
-    # header files
-    header_files: List[Dict[str, str]] = general.get("headers", None)
-    if header_files is not None:
-        generate_headers(module_name, output_dir, header_files, templates)
+        log.info(f"Generating files for module: {module_name}")
 
-    # test files
-    test_files: List[Dict[str, str]] = general.get("test", None)
-    if test_files is not None:
-        generate_tests(module_name, output_dir, test_files, templates)
+        # expand templates
+        expanded_templates: Dict[str, Any] = expand_templates(templates, **special_variables)
+
+        # source files
+        source_files: List[Dict[str, str]] = general.get("sources", None)
+        if source_files is not None:
+            generate_sources(module_name, output_dir, source_files, expanded_templates)
+
+        log.info(f"Generated source files for module {module_name}")
+
+        # header files
+        header_files: List[Dict[str, str]] = general.get("headers", None)
+        if header_files is not None:
+            generate_headers(module_name, output_dir, header_files, expanded_templates)
+
+        log.info(f"Generated header files for module {module_name}")
+
+        # test files
+        test_files: List[Dict[str, str]] = general.get("test", None)
+        if test_files is not None:
+            generate_tests(module_name, output_dir, test_files, expanded_templates)
+
+        log.info("-------------------")
+
+    log.info("Done!")
 
 
 if __name__ == "__main__":

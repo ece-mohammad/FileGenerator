@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="FileGenerator",
-    version="0.0.1",
+    version="0.0.2",
     author="Mohammad Mohsen",
     author_email="kuro.ece@gmail.com",
     packages=[],

@@ -73,7 +73,7 @@ headers = [
 # define generated test files 
 # -----------------------------------------------------------------------------
 test = [
-    {id="unity",       ext=".c", name="${module_name}Test",       path="./Test",             body=["std_inc", "unity_inc"]},
+    {id="unity",       ext=".c", name="${module_name}Test",       path="./Test",             body=["std_inc", "unity_inc", "test_inc"]},
     {id="unityRunner", ext=".c", name="${module_name}TestRunner", path="./Test/TestRunners", body=["std_inc", "unity_inc", "unity_main"]},
 ]
 
@@ -221,16 +221,26 @@ int main(void)
 }
 """
 
+[templates.test_inc]
+str = """
+#include "${module_name}.h"
+"""
+
 [templates.unity_inc]
 str = """
 #include "unity.h"
+#include "unity_fixture.h"
 """
 
 [templates.unity_main]
 str = """
-int main(void)
+static void RunAllTests(void)
 {
-    UNITY_BEGIN();
-    return UNITY_END();
+}
+
+
+int main(int argc, const str * argv [])
+{
+    return UnityMain(argc, argv, RunAllTests);
 }
 """
