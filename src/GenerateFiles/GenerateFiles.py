@@ -129,6 +129,7 @@ def main():
 
     arg_parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description="Generate files according to template file",
+        epilog=f"%(prog)s version {__VERSION__}",
     )
 
     arg_parser.add_argument(
@@ -140,9 +141,9 @@ def main():
     arg_parser.add_argument(
         "-t",
         "--template_file",
-        help="path to template file",
+        help="path to template file, default: ./template.toml",
         type=pathlib.Path,
-        default=pathlib.Path("template.toml")
+        default=pathlib.Path("./template.toml")
     )
 
     arg_parser.add_argument(
@@ -155,8 +156,9 @@ def main():
 
     arg_parser.add_argument(
         "-v",
-        "--verbose",
-        help="output debugging messages to console, disabled by default to outputs errors only",
+        dest="verbose",
+        help="output debugging messages to console, disabled by default to outputs errors only, "
+             "use -vv, -vvv, -vvvv, -vvvv for more verbosity",
         action="count",
         default=0
     )

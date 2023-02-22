@@ -11,19 +11,20 @@ When starting a new project, I need to create multiple source and header files a
 ## Usage
 
 ```shell
-usage: GenerateFiles.py [-h] [-o OUTPUT_DIR] [-v] [--version] module_name template_file
+usage: GenerateFiles.py [-h] [-t TEMPLATE_FILE] [-o OUTPUT_DIR] [-v] [--version] module_names [module_names ...]
 
 Generate files according to template file
 
 positional arguments:
-  module_name           name of the module for which the files are generated
-  template_file         path to template file
+  module_names          list of module names for which the files are generated
 
 options:
   -h, --help            show this help message and exit
+  -t TEMPLATE_FILE, --template_file TEMPLATE_FILE
+                        path to template file, default: ./template.toml
   -o OUTPUT_DIR, --output_dir OUTPUT_DIR
                         output directory where generated files will be written, default is current directory
-  -v, --verbose         output debugging messages to console
+  -v                    output debugging messages to console, disabled by default to outputs errors only, use -vv, -vvv, -vvvv, -vvvv for more verbosity
   --version             print current program's version
 ```
 
